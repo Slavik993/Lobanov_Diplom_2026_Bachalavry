@@ -1,0 +1,13 @@
+# Python bytecode & caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+# Сессии и временные данные приложения
+sessions/
+outputs/
+*.json  # если хочешь игнорировать все json, но лучше только конкретные папки

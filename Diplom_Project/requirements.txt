@@ -1,0 +1,12 @@
+torch
+torchvision
+diffusers>=0.26.0
+transformers>=4.38.0
+accelerate>=0.27.0
+pillow
+gradio
+sentencepiece
+deep-translator
+numpy
+matplotlib
+huggingface-hub>=0.20.0
