@@ -137,8 +137,8 @@ def chat_turn(user_message, chat_history):
     
     return chat_history, imgs
 
-with gr.Blocks(title=config.get("app_name", "StoryForge Lite"), theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# ⚔️ StoryForge Lite: Нелинейные Приключения")
+with gr.Blocks(title=config.get("app_name", "Neuro Tale"), theme=gr.themes.Soft()) as demo:
+    gr.Markdown("# ⚔️ Neuro Tale: Нелинейные Приключения")
     
     with gr.Row():
         with gr.Column(scale=1):
@@ -176,4 +176,4 @@ with gr.Blocks(title=config.get("app_name", "StoryForge Lite"), theme=gr.themes.
     )
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(share=True)
