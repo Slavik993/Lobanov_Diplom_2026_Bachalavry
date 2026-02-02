@@ -15,7 +15,7 @@ class PromptEngineer:
             "natural lighting", "studio lighting", "soft creative lighting", "volumetric lighting", "rembrandt lighting"
         ]
 
-    def build_prompt(self, base_description, style_name="Cinematic", character_desc="", add_random_camera=False):
+    def build_prompt(self, base_description, style_name="Cinematic", character_desc="", add_random_camera=False, story_context=""):
         """
         Constructs a complex prompt based on multiple parameters.
         """
@@ -26,6 +26,10 @@ class PromptEngineer:
             components.append(f"{character_desc}, {base_description}")
         else:
             components.append(base_description)
+
+        # Add story context for coherence
+        if story_context:
+            components.append(f"Story context: {story_context}")
 
         # 2. Style Injection
         style_prompt = self.styles.get(style_name, self.styles["Cinematic"])
@@ -39,7 +43,7 @@ class PromptEngineer:
         components.append(random.choice(self.lighting))
 
         # 5. Quality Boosters
-        components.append("high quality, masterpiece, sharp focus")
+        components.append("high quality, masterpiece, sharp focus, highly detailed, intricate details, photorealistic, professional digital art")
 
         return ", ".join(components)
 

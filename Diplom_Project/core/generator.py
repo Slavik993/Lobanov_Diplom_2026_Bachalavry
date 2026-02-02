@@ -1,5 +1,5 @@
 import torch
-from diffusers import StableDiffusionPipeline
+from diffusers import StableDiffusionXLPipeline, DPMSolverMultistepScheduler
 from PIL import Image, ImageDraw
 import hashlib
 
@@ -8,8 +8,8 @@ class ImageGenerator:
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
         print(f"Using device: {self.device}")
         self.pipeline = None
-        # Use the official v1-5 repo which is more reliable
-        self.model_id = "stable-diffusion-v1-5/stable-diffusion-v1-5"
+        # Use Stable Diffusion XL for better quality
+        self.model_id = "stabilityai/stable-diffusion-xl-base-1.0"
         self.last_error = None
 
     def load_model(self):
@@ -19,13 +19,16 @@ class ImageGenerator:
 
         print(f"Loading Stable Diffusion model ({self.model_id})...")
         try:
-            self.pipeline = StableDiffusionPipeline.from_pretrained(
+            self.pipeline = StableDiffusionXLPipeline.from_pretrained(
                 self.model_id,
                 torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
                 safety_checker=None,
                 requires_safety_checker=False,
                 use_safetensors=True
             ).to(self.device)
+
+            # Use DPM++ 2M Karras scheduler for better quality
+            self.pipeline.scheduler = DPMSolverMultistepScheduler.from_config(self.pipeline.scheduler.config, use_karras_sigmas=True)
 
             if self.device == "cuda":
                 self.pipeline.enable_attention_slicing()
@@ -42,15 +45,7 @@ class ImageGenerator:
             self.last_error = error_msg
             self.pipeline = None
 
-    def generate(self, prompt, negative_prompt="", seed=None, height=512, width=512, steps=30):
-        """Generates an image from a prompt."""
-        if self.pipeline is None:
-            # Try loading again if it wasn't loaded
-            self.load_model()
-            if self.pipeline is None:
-                return self.create_dummy_image(prompt)
-
-    def generate(self, prompt, negative_prompt="", seed=None, height=512, width=512, steps=30):
+    def generate(self, prompt, negative_prompt="", seed=None, height=1024, width=1024, steps=30):
         """Generates an image from a prompt."""
         if self.pipeline is None:
             # Try loading again if it wasn't loaded
@@ -88,7 +83,7 @@ class ImageGenerator:
             prompt,
             negative_prompt=negative_prompt,
             num_inference_steps=steps,
-            guidance_scale=7.5,
+            guidance_scale=9.0,
             generator=generator,
             height=height,
             width=width

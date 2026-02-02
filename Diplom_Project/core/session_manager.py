@@ -2,6 +2,30 @@ import json
 import os
 import time
 from datetime import datetime
+import uuid
+import random
+
+class SessionState:
+    def __init__(self):
+        self.session_id = str(uuid.uuid4())
+        self.history = ""
+        self.current_seed = -1
+        self.char_desc = ""
+        self.style = ""
+        self.images = []
+        self.scene_texts = []
+        self.num_scenes = 3
+
+    def reset(self):
+        self.session_id = str(uuid.uuid4())
+        self.history = ""
+        self.current_seed = random.randint(0, 1000000)
+        self.char_desc = ""
+        self.style = ""
+        self.images = []
+        self.scene_texts = []
+        self.num_scenes = 3
+        return self
 
 class SessionManager:
     def __init__(self, storage_path="sessions"):
@@ -9,7 +33,7 @@ class SessionManager:
         if not os.path.exists(storage_path):
             os.makedirs(storage_path)
 
-    def save_session(self, session_id, history, character, style, seed):
+    def save_session(self, session_id, history, character, style, seed, num_scenes):
         """
         Saves the current session state to a JSON file.
         """
@@ -19,6 +43,7 @@ class SessionManager:
             "character": character,
             "style": style,
             "seed": seed,
+            "num_scenes": num_scenes,
             "history": history
         }
         
