@@ -10,3 +10,4 @@ deep-translator
 numpy
 matplotlib
 huggingface-hub>=0.20.0
+bitsandbytes>=0.41.0  # For 8-bit quantization

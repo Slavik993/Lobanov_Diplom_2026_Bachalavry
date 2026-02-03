@@ -15,7 +15,7 @@ class StoryTeller:
             print(f"Failed to load StoryTeller model: {e}")
             self.generator = None
 
-    def generate_response(self, context, user_input, max_length=150):
+    def generate_response(self, context, user_input, educational_mode=False, max_length=150):
         """
         Generates the next part of the story based on context and user input.
         """
@@ -27,7 +27,12 @@ class StoryTeller:
         # Ideally, we keep a running context.
         
         # Simplified prompt construction for RuGPT
-        prompt = f"{context}\nИгрок: {user_input}\nМастер:"
+        # Custom prompt for educational mode
+        if educational_mode or (isinstance(context, str) and "Лектор:" in context):
+             # Try to keep it strict
+             prompt = f"{context}\nСтудент: {user_input}\nЛектор:"
+        else:
+             prompt = f"{context}\nИгрок: {user_input}\nМастер:"
         
         # Truncate context if it gets too long
         if len(prompt) > 2000:

@@ -1,15 +1,16 @@
 import torch
-from diffusers import StableDiffusionXLPipeline, DPMSolverMultistepScheduler
+from diffusers import StableDiffusionPipeline
 from PIL import Image, ImageDraw
 import hashlib
 
 class ImageGenerator:
-    def __init__(self, device=None):
+    def __init__(self, device=None, low_memory_mode=False):
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
-        print(f"Using device: {self.device}")
+        self.low_memory_mode = low_memory_mode
+        print(f"Using device: {self.device}, Low memory mode: {low_memory_mode}")
         self.pipeline = None
-        # Use Stable Diffusion XL for better quality
-        self.model_id = "stabilityai/stable-diffusion-xl-base-1.0"
+        # Use the official v1-5 repo which is more reliable
+        self.model_id = "stable-diffusion-v1-5/stable-diffusion-v1-5"
         self.last_error = None
 
     def load_model(self):
@@ -19,23 +20,50 @@ class ImageGenerator:
 
         print(f"Loading Stable Diffusion model ({self.model_id})...")
         try:
-            self.pipeline = StableDiffusionXLPipeline.from_pretrained(
+            # Memory optimizations
+            if self.low_memory_mode:
+                print("Using low memory optimizations...")
+                # Use basic memory optimizations
+                pipeline_kwargs = {
+                    "torch_dtype": torch.float16 if self.device == "cuda" else torch.float32,
+                }
+            else:
+                pipeline_kwargs = {
+                    "torch_dtype": torch.float16 if self.device == "cuda" else torch.float32,
+                }
+
+            self.pipeline = StableDiffusionPipeline.from_pretrained(
                 self.model_id,
-                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
                 safety_checker=None,
                 requires_safety_checker=False,
-                use_safetensors=True
-            ).to(self.device)
-
-            # Use DPM++ 2M Karras scheduler for better quality
-            self.pipeline.scheduler = DPMSolverMultistepScheduler.from_config(self.pipeline.scheduler.config, use_karras_sigmas=True)
+                use_safetensors=True,
+                **pipeline_kwargs
+            )
 
             if self.device == "cuda":
                 self.pipeline.enable_attention_slicing()
+                if self.low_memory_mode:
+                    # Enable model CPU offloading for CUDA with low memory
+                    try:
+                        self.pipeline.enable_model_cpu_offload()
+                        print("Model CPU offloading enabled")
+                    except Exception as e:
+                        print(f"CPU offloading failed: {e}")
+                else:
+                    self.pipeline.to(self.device)
             else:
                 # CPU optimizations
-                # self.pipeline.enable_sequential_cpu_offload() # Can save memory but slower
-                pass
+                self.pipeline.enable_attention_slicing()
+                if self.low_memory_mode:
+                    # Enable sequential CPU offload for very low memory
+                    try:
+                        self.pipeline.enable_sequential_cpu_offload()
+                        print("Sequential CPU offload enabled")
+                    except Exception as e:
+                        print(f"Sequential CPU offload failed: {e}")
+                else:
+                    # Standard CPU loading
+                    pass
                 
             print("Model loaded successfully.")
             self.last_error = None
@@ -45,13 +73,29 @@ class ImageGenerator:
             self.last_error = error_msg
             self.pipeline = None
 
-    def generate(self, prompt, negative_prompt="", seed=None, height=1024, width=1024, steps=30):
+    def generate(self, prompt, negative_prompt="", seed=None, height=512, width=512, steps=30, educational_mode=False):
         """Generates an image from a prompt."""
         if self.pipeline is None:
             # Try loading again if it wasn't loaded
             self.load_model()
             if self.pipeline is None:
                 return self.create_dummy_image(prompt)
+
+        # Adjust resolution for low memory mode
+        if self.low_memory_mode:
+            height = min(height, 384)
+            width = min(width, 384)
+            print(f"Low memory mode: using {width}x{height} resolution")
+
+        # Default strong negative prompt for educational mode
+        if educational_mode and not negative_prompt:
+            negative_prompt = (
+                "blurry, low quality, deformed, ugly, bad anatomy, extra limbs, poorly drawn face, bad proportions, "
+                "extra fingers, fused fingers, malformed hands, watermark, text, signature, logo, username, "
+                "cartoon, anime, 3d render, painting, sketch, lowres, jpeg artifacts, noise, grain, overexposed, "
+                "underexposed, bad lighting, chromatic aberration, lens flare, unrealistic, fantasy, surreal, "
+                "colorful background, abstract art, artistic, decorative"
+            )
 
         # If seed is provided, we use it for consistency.
         # If seed is -1 or None, we randomize.
@@ -62,15 +106,24 @@ class ImageGenerator:
         generator = torch.Generator(device=self.device).manual_seed(seed)
 
         try:
-            # Reduce steps for CPU to make it faster to test
-            actual_steps = steps if self.device == "cuda" else 15
+            # Adjust steps and guidance for educational mode
+            if educational_mode:
+                actual_steps = 25 if self.device == "cuda" else 15
+                guidance_scale = 9.0
+            else:
+                actual_steps = steps if self.device == "cuda" else 15
+                guidance_scale = 7.5
             
             # autocast for mixed precision
             if self.device == 'cuda':
                 with torch.autocast(self.device):
-                    image = self._run_pipeline(prompt, negative_prompt, height, width, actual_steps, generator)
+                    image = self._run_pipeline(prompt, negative_prompt, height, width, actual_steps, generator, guidance_scale)
             else:
-                image = self._run_pipeline(prompt, negative_prompt, height, width, actual_steps, generator)
+                image = self._run_pipeline(prompt, negative_prompt, height, width, actual_steps, generator, guidance_scale)
+            
+            # Add frame for educational mode
+            if educational_mode:
+                image = self.add_frame(image)
             
             return image
         except Exception as e:
@@ -78,16 +131,23 @@ class ImageGenerator:
             print(f"Error during generation: {e}")
             return self.create_dummy_image(prompt)
 
-    def _run_pipeline(self, prompt, negative_prompt, height, width, steps, generator):
+    def _run_pipeline(self, prompt, negative_prompt, height, width, steps, generator, guidance_scale=7.5):
         return self.pipeline(
             prompt,
             negative_prompt=negative_prompt,
             num_inference_steps=steps,
-            guidance_scale=9.0,
+            guidance_scale=guidance_scale,
             generator=generator,
             height=height,
             width=width
         ).images[0]
+
+    def add_frame(self, image):
+        """Adds a simple frame to the image for educational purposes."""
+        draw = ImageDraw.Draw(image)
+        width, height = image.size
+        draw.rectangle([(10, 10), (width-10, height-10)], outline="black", width=4)
+        return image
 
     def create_dummy_image(self, prompt):
         """Creates a placeholder image if the model fails or isn't loaded."""
