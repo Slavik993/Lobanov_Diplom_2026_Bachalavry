@@ -46,24 +46,27 @@ def generate_sequence(base_prompt_ru, character, style, count=3, educational_mod
     
     # Base extraction
     visual_text = text_processor.extract_visual_part(base_prompt_ru)
+    is_split_narrative = False
+    context_anchor = ""
     
     # Check if this is a long user story/plot (Comic Mode)
-    # If the input text is long (> 50 chars) and contains spaces, we treat it as a direct storyboard script
     if len(base_prompt_ru) > 50 and base_prompt_ru.count(' ') > 5:
         app_logger.info(f"Detected long story input. Splitting into scenes...")
         variations = text_processor.split_story_into_scenes(base_prompt_ru, num_scenes=count)
+        is_split_narrative = True
+        # Extract the first sentence as the "Context Anchor" (Subject + Setting)
+        # This ensures Frame 2 ("He lights a torch") knows who "He" is (from Frame 1 "Knight enters castle")
+        context_anchor = base_prompt_ru.split('.')[0].strip()
+        if len(context_anchor) > 100:
+            context_anchor = context_anchor[:100] # Truncate if first sentence is huge
     
     # IT-specific variations based on style and content
-    # Dynamic Storyboard Generation (Preferred for Educational)
     elif educational_mode:
-        # Use LLM to generate a coherent storyboard
         app_logger.info(f"Generating storyboard for: {character} using style {style}")
         variations = storyteller.generate_visual_storyboard(character, style, count)
         if not variations or len(variations) < count:
-             # Fallback to hardcoded list if LLM fails
              variations = ["informational diagram", "detailed schematic", "process flow", "summary result"]
     elif style == "Algorithm Flowchart":
-        # ... (Old hardcoded logic as backup or for non-educational mode)
         variations = [
             "flowchart diagram with start/stop ovals",
             "pseudocode structure",
@@ -76,22 +79,42 @@ def generate_sequence(base_prompt_ru, character, style, count=3, educational_mod
     for i in range(count):
         variation = variations[i % len(variations)]
         
+        # Prompt Logic:
+        if is_split_narrative:
+            # We combine the Context Anchor (Who/Where) with the specific Action (Variation)
+            # Example: "Knight enters dark castle" (Context) + "He lights a torch" (Action)
+            description_input = variation
+            char_context = context_anchor
+        else:
+            description_input = f"{visual_text}, {variation}"
+            char_context = character
+
         complex_prompt, negative_prompt = prompt_engineer.build_prompt(
-            base_description=f"{visual_text}, {variation}", 
+            base_description=description_input, 
             style_name=style, 
-            character_desc=character,
+            character_desc=char_context,
             add_random_camera=False,
             educational_mode=educational_mode
         )
         
         en_prompt = translator.translate(complex_prompt)
+        # Ensure 'high quality' is strictly enforced
+        if "high quality" not in en_prompt.lower():
+            en_prompt += ", high quality, 8k, masterpiece"
+            
         en_negative_prompt = translator.translate(negative_prompt) if negative_prompt else ""
         app_logger.info(f"Generating frame {i+1}: {en_prompt}")
         if en_negative_prompt:
             app_logger.info(f"Negative prompt: {en_negative_prompt}")
         
-        # Use varied seed for each scene (base seed + scene index) for diversity
-        scene_seed = session.current_seed + i if session.current_seed != -1 else None
+        # Seed Logic:
+        # For Narratives/Comics, use the SAME seed for all frames to keep character/style consistent.
+        # For Topics, vary the seed to show different details/layouts.
+        if is_split_narrative:
+             scene_seed = session.current_seed # Constant seed
+        else:
+             scene_seed = session.current_seed + i if session.current_seed != -1 else None
+
         img = generator.generate(en_prompt, negative_prompt=en_negative_prompt, seed=scene_seed, educational_mode=educational_mode)
         images.append(img)
         
