@@ -175,9 +175,23 @@ def start_story(character_input, style_input, educational_mode, scene_count):
     )
     
     # Return format: List of [User, Bot] dicts
-    return [
+    chat_history = [
         {"role": "assistant", "content": chat_output}
-    ], imgs
+    ]
+    
+    # Save session with chat history
+    session_manager.save_session(
+        session.session_id, 
+        session.history, 
+        session.char_desc, 
+        session.style, 
+        session.current_seed,
+        session.educational_mode,
+        images=session.images,
+        chat_history=chat_history
+    )
+    
+    return chat_history, imgs
 
 def chat_turn(user_message, chat_history):
     """Handles a single turn of the chat."""
@@ -216,10 +230,60 @@ def chat_turn(user_message, chat_history):
         session.style, 
         session.current_seed,
         session.educational_mode,
-        images=session.images
+        images=session.images,
+        chat_history=chat_history or [] # Pass the structured chat history
     )
     
     return chat_history, imgs
+
+def import_session_handler(file_obj):
+    """Handles session import from a JSON file."""
+    if file_obj is None:
+        return None, [], "Файл не выбран"
+    
+    try:
+        data = session_manager.import_session_file(file_obj.name)
+        if not data:
+            return None, [], "Не удалось загрузить файл сессии"
+            
+        # Restore session state
+        session.session_id = data.get("session_id", str(uuid.uuid4()))
+        session.history = data.get("history", "")
+        session.char_desc = data.get("character", "")
+        session.style = data.get("style", "")
+        session.current_seed = data.get("seed", -1)
+        session.educational_mode = data.get("educational_mode", False)
+        
+        # Restore chat history (list of dicts)
+        restored_chat = data.get("chat_history", [])
+        
+        # If no structured chat history exists (old save), try to rebuild from string history (basic fallback)
+        if not restored_chat and session.history:
+             # Basic reconstruction if needed, or just leave empty to avoid errors
+             restored_chat = [{"role": "assistant", "content": "История восстановлена из старого формата (текст): " + session.history[:100] + "..."}]
+        
+        # Restore images (paths might be relative or need checking)
+        saved_images = data.get("saved_images", [])
+        session.images = [] # We can't easily load PIL images from paths without reopening them
+        
+        # Try to reload images for the gallery
+        gallery_images = []
+        for img_path in saved_images:
+            if os.path.exists(img_path):
+                 gallery_images.append(img_path)
+            else:
+                 # Try relative to the json file if absolute fail
+                 base_dir = os.path.dirname(file_obj.name)
+                 rel_path = os.path.join(base_dir, os.path.basename(img_path))
+                 if os.path.exists(rel_path):
+                     gallery_images.append(rel_path)
+
+        app_logger.info(f"Session imported: {session.session_id}")
+        return restored_chat, gallery_images, f"Сессия загружена: {session.char_desc}"
+
+    except Exception as e:
+        app_logger.error(f"Import error: {e}")
+        return [], [], f"Ошибка импорта: {e}"
 
 with gr.Blocks(title="Neuro Tale: Генератор образовательных визуалов", theme=gr.themes.Soft()) as demo:
     gr.Markdown("# 🎓 Neuro Tale: Генератор визуалов для IT-образования")
@@ -235,34 +299,29 @@ with gr.Blocks(title="Neuro Tale: Генератор образовательн�
         with gr.Column(scale=1):
             # Setup Column
             char_input = gr.Textbox(
-                label="Тема / Концепция", 
-                placeholder="Например: 'Алгоритм сортировки пузырьком', 'Структура нейронной сети', 'Схема базы данных'"
+                label="Тема / Концепция / Сюжет", 
+                placeholder="Например: 'Рыцарь входит в замок...'"
             )
             style_input = gr.Dropdown(
                 label="Стиль визуализации", 
                 choices=prompt_engineer.get_available_styles(), 
                 value="Educational",
-                info="Выберите подходящий стиль для IT-темы"
+                info="Выберите подходящий стиль"
             )
             educational_checkbox = gr.Checkbox(
-                label="Учебно-методический режим (рекомендуется)", 
+                label="Учебно-методический режим", 
                 value=True,
-                info="Оптимизирует для лекций, презентаций и учебных материалов"
+                info="Оставьте включенным для генерации диаграмм и схем. Для комиксов можно отключить, но система сама поймет сюжет."
             )
-            scene_count_slider = gr.Slider(
-                label="Количество сцен в последовательности",
-                minimum=1,
-                maximum=5,
-                value=3,
-                step=1,
-                info="Выберите от 1 до 5 сцен для генерации"
-            )
-            low_memory_checkbox = gr.Checkbox(
-                label="Режим низкого потребления памяти (8GB RAM)", 
-                value=False,
-                info="Включите если у вас 8GB оперативной памяти"
-            )
-            start_btn = gr.Button("🚀 Создать визуальную последовательность", variant="primary")
+            scene_count_slider = gr.Slider(label="Количество сцен", minimum=1, maximum=5, value=3, step=1)
+            low_memory_checkbox = gr.Checkbox(label="Режим 8GB RAM (низкое качество)", value=False)
+            
+            start_btn = gr.Button("🚀 Создать последовательность", variant="primary")
+            
+            # Import Section
+            gr.Markdown("---")
+            import_file = gr.File(label="Загрузить сессию (.json)", file_types=[".json"])
+            import_status = gr.Textbox(label="Статус импорта", interactive=False)
             
             # Current Scene Gallery
             scene_gallery = gr.Gallery(
@@ -275,10 +334,10 @@ with gr.Blocks(title="Neuro Tale: Генератор образовательн�
             
         with gr.Column(scale=2):
             # Chat Interface
-            chatbot = gr.Chatbot(label="Пояснения к визуалам", height=600)
+            chatbot = gr.Chatbot(label="История / Сценарий", height=600)
             msg_input = gr.Textbox(
-                label="Дополнительные инструкции", 
-                placeholder="Опишите что именно нужно показать или уточните детали визуализации"
+                label="Дополнительные инструкции / Продолжение сюжета", 
+                placeholder="Например: 'Далее он поднимает меч...'"
             )
             send_btn = gr.Button("Дополнить последовательность")
 
@@ -299,6 +358,12 @@ with gr.Blocks(title="Neuro Tale: Генератор образовательн�
         fn=chat_turn,
         inputs=[msg_input, chatbot],
         outputs=[chatbot, scene_gallery]
+    )
+    
+    import_file.change(
+        fn=import_session_handler,
+        inputs=[import_file],
+        outputs=[chatbot, scene_gallery, import_status]
     )
 
 if __name__ == "__main__":

@@ -3,7 +3,11 @@ import random
 class PromptEngineer:
     def __init__(self):
         self.styles = {
-            "Cinematic": "cinematic lighting, dramatic atmosphere, detailed texture, 8k, unreal engine 5 render, ray tracing",
+            "Cinematic": (
+                "movie scene, detailed environment, dramatic lighting, shot on 35mm, "
+                "shallow depth of field, sharp focus, hyperrealistic, dynamic composition, "
+                "color graded, unreal engine 5 render, ray tracing"
+            ),
             "Anime": "anime style, makoto shinkai style, studio ghibli, vibrant colors, detailed background, cel shaded",
             "Oil Painting": "oil painting, textured, impressionist, van gogh style, heavy strokes",
             "Cyberpunk": "cyberpunk, neon lights, night city, rain, futuristic, sci-fi, detailed techno",
