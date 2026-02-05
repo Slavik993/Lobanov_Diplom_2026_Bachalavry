@@ -9,10 +9,27 @@ class SessionManager:
         if not os.path.exists(storage_path):
             os.makedirs(storage_path)
 
-    def save_session(self, session_id, history, character, style, seed, educational_mode=False):
+    def save_session(self, session_id, history, character, style, seed, educational_mode=False, images=None):
         """
-        Saves the current session state to a JSON file.
+        Saves the current session state to a JSON file and images to the outputs directory.
         """
+        # Ensure outputs directory exists
+        outputs_dir = os.path.join(os.path.dirname(self.storage_path), "outputs")
+        if not os.path.exists(outputs_dir):
+            os.makedirs(outputs_dir)
+
+        image_paths = []
+        if images:
+            for idx, img in enumerate(images):
+                img_filename = f"{session_id}_img_{idx}.png"
+                img_path = os.path.join(outputs_dir, img_filename)
+                try:
+                    img.save(img_path)
+                    image_paths.append(img_path)
+                    print(f"Saved image to {img_path}")
+                except Exception as e:
+                    print(f"Failed to save image {img_filename}: {e}")
+
         data = {
             "session_id": session_id,
             "timestamp": datetime.now().isoformat(),
@@ -20,7 +37,8 @@ class SessionManager:
             "style": style,
             "seed": seed,
             "educational_mode": educational_mode,
-            "history": history
+            "history": history,
+            "saved_images": image_paths
         }
         
         filename = f"session_{session_id}.json"

@@ -1,0 +1,30 @@
+2026-02-05 18:22:53,710 - AppLogger - INFO - Starting new session: 8f1c259b-2e22-478e-a2a9-c301d826613a
+2026-02-05 18:22:53,711 - AppLogger - INFO - Character: «Рыцарь входит в тёмный замок. Он зажигает факел и видит паутину. Вдруг из тени выходит дракон. Рыцарь поднимает меч и готовится к бою.», Style: Comic Book, Educational: True, Scenes: 3
+2026-02-05 18:23:00,621 - AppLogger - INFO - Detected long story input. Splitting into scenes...
+2026-02-05 18:23:02,284 - AppLogger - INFO - Generating frame 1: What is magic?
+Lecture topic: . Brief, clear and interesting. Author - Irina Viktorovna Goya (Moscow). You can find out about it here http://www.proza.ru/avtorrents/budet-voyna-i-luchshie_istoriya/ 
+  
+   
+      
+        \t\t\tIntroduction   
+      2
+        \t\t\tExtended text of the lecture for students of secondary school No. 2 in Novosibirsk. The text of the textbook is available at the link https://readficq.com/id/1312553 Original entry and comments on LiveInternet., What is magic? Lecture topic: “How to read poetry correctly.” Brief, clear and interesting. Author - Irina Viktorovna Goya (Moscow)., comic book style, graphic novel visualization, bold ink lines, vibrant colors, dynamic composition, expressive characters, sequential art, detailed background, high quality digital art, masterpiece, 8k resolution, consistent character design, sequential panel art, unified graphic novel style, simple illustration:1.3, clean background:1.4, high contrast:1.2, legible text:1.3, high quality, masterpiece, sharp focus
+2026-02-05 18:23:02,285 - AppLogger - INFO - Negative prompt: blurry, low quality, distorted, ugly, deformed, artistic, painterly, grunge, dirty, complex background, photo, realistic, 3d render
+2026-02-05 18:25:48,451 - AppLogger - INFO - Generating frame 2: What is magic?
+Lecture topic: . Brief, clear and interesting. Author - Irina Viktorovna Goya (Moscow). You can find out about it here http://www.proza.ru/avtorrents/budet-voyna-i-luchshie_istoriya/ 
+  
+   
+      
+        \t\t\tIntroduction   
+      2
+        \t\t\tExtended text of the lecture for students of secondary school No. 2 in Novosibirsk. The text of the textbook is available at the link https://readficq.com/id/1312553 Original entry and comments on LiveInternet. You can find out about it here http://www. proza. ru/avtorrents/budet-voyna-i-luchshie_istoriya/ \t\t\tIntroduction 2 \t\t\tExpanded text of the lecture for students of secondary school No. 2, comic book style, graphic novel visualization, bold ink lines, vibrant colors, dynamic composition, expressive characters, sequential art, detailed background, high quality digital art, masterpiece, 8k resolution, consistent character design, sequential panel art, unified graphic novel style, simple illustration:1.3, clean background:1.4, high contrast:1.2, legible text:1.3, high quality, masterpiece, sharp focus
+2026-02-05 18:25:48,452 - AppLogger - INFO - Negative prompt: blurry, low quality, distorted, ugly, deformed, artistic, painterly, grunge, dirty, complex background, photo, realistic, 3d render
+2026-02-05 18:28:27,814 - AppLogger - INFO - Generating frame 3: What is magic?
+Lecture topic: . Brief, clear and interesting. Author - Irina Viktorovna Goya (Moscow). You can find out about it here http://www.proza.ru/avtorrents/budet-voyna-i-luchshie_istoriya/ 
+  
+   
+      
+        \t\t\tIntroduction   
+      2
+        \t\t\tExtended text of the lecture for students of secondary school No. 2 in Novosibirsk. The text of the textbook is available at the link https://readficq.com/id/1312553 Original recording and comments on LiveInternet., Novosibirsk. The text of the textbook is available at https://readficq. com/id/1312553 Original post and comments on LiveInternet., comic book style, graphic novel visualization, bold ink lines, vibrant colors, dynamic composition, expressive characters, sequential art, detailed background, high quality digital art, masterpiece, 8k resolution, consistent character design, sequential panel art, unified graphic novel style, simple illustration:1.3, clean background:1.4, high contrast:1.2, legible text:1.3, high quality, masterpiece, sharp focus
+2026-02-05 18:28:27,815 - AppLogger - INFO - Negative prompt: blurry, low quality, distorted, ugly, deformed, artistic, painterly, grunge, dirty, complex background, photo, realistic, 3d render

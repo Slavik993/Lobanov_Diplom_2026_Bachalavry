@@ -47,55 +47,31 @@ def generate_sequence(base_prompt_ru, character, style, count=3, educational_mod
     # Base extraction
     visual_text = text_processor.extract_visual_part(base_prompt_ru)
     
-    # IT-specific variations based on style and content
-    base_content = base_prompt_ru.lower()
-    if style == "Algorithm Flowchart":
-        if "пузырьк" in base_content or "bubble" in base_content:
-            variations = [
-                "bubble sort initialization: array declaration, start rectangle, arrow to loop",
-                "bubble sort outer loop: for i from 0 to n-1, loop diamond, counter variable",
-                "bubble sort inner loop: for j from 0 to n-i-1, nested loop structure",
-                "bubble sort comparison: if array[j] > array[j+1], decision diamond, comparison operator",
-                "bubble sort swap: exchange elements, swap operation rectangle, temporary variable",
-                "bubble sort pass completion: end of inner loop, arrow back to outer loop",
-                "bubble sort algorithm termination: end rectangle, sorted array result",
-                "bubble sort time complexity: O(n²) notation, complexity analysis diagram"
-            ]
-        elif "быстр" in base_content or "quick" in base_content:
-            variations = [
-                "quick sort function call: sort(array, low, high), start rectangle, parameters",
-                "quick sort base case: if low >= high, return, decision diamond",
-                "quick sort pivot selection: choose pivot element, pivot assignment rectangle",
-                "quick sort partitioning: rearrange elements around pivot, partition function call",
-                "quick sort left subarray: recursive call sort(left), recursive arrow",
-                "quick sort right subarray: recursive call sort(right), recursive arrow",
-                "quick sort completion: all subarrays sorted, end rectangle",
-                "quick sort complexity: O(n log n) average case, complexity diagram"
-            ]
-        else:
-            variations = ["initialization step", "main processing loop", "decision making", "final output"]
-    elif style == "Database Schema":
-        variations = ["entity definition", "relationship mapping", "table structure", "query example"]
-    elif style == "Neural Network":
-        variations = ["input layer", "hidden layers", "output layer", "training process"]
-    elif style == "Web Interface":
-        variations = ["homepage layout", "user dashboard", "form design", "navigation flow"]
-    elif style == "Code Structure":
-        variations = ["class diagram", "module dependencies", "data flow", "architecture overview"]
-    elif educational_mode:
-        variations = ["establishing shot, diagram", "detailed step, labeled", "summary view, schematic"]
-    else:
-        variations = ["cinematic shot", "action shot, dynamic", "close up, detailed expression"]
+    # Check if this is a long user story/plot (Comic Mode)
+    # If the input text is long (> 50 chars) and contains spaces, we treat it as a direct storyboard script
+    if len(base_prompt_ru) > 50 and base_prompt_ru.count(' ') > 5:
+        app_logger.info(f"Detected long story input. Splitting into scenes...")
+        variations = text_processor.split_story_into_scenes(base_prompt_ru, num_scenes=count)
     
-    # Adjust style for IT themes
-    if any(keyword in base_prompt_ru.lower() for keyword in ["алгоритм", "программирование", "код", "code", "algorithm"]):
-        style = "Algorithm Flowchart" if style == "Educational" else style
-    elif any(keyword in base_prompt_ru.lower() for keyword in ["база данных", "database", "sql", "реляционная"]):
-        style = "Database Schema" if style == "Educational" else style
-    elif any(keyword in base_prompt_ru.lower() for keyword in ["нейрон", "машинное обучение", "ml", "ai", "neural"]):
-        style = "Neural Network" if style == "Educational" else style
-    elif any(keyword in base_prompt_ru.lower() for keyword in ["веб", "интерфейс", "ui", "ux", "web"]):
-        style = "Web Interface" if style == "Educational" else style
+    # IT-specific variations based on style and content
+    # Dynamic Storyboard Generation (Preferred for Educational)
+    elif educational_mode:
+        # Use LLM to generate a coherent storyboard
+        app_logger.info(f"Generating storyboard for: {character} using style {style}")
+        variations = storyteller.generate_visual_storyboard(character, style, count)
+        if not variations or len(variations) < count:
+             # Fallback to hardcoded list if LLM fails
+             variations = ["informational diagram", "detailed schematic", "process flow", "summary result"]
+    elif style == "Algorithm Flowchart":
+        # ... (Old hardcoded logic as backup or for non-educational mode)
+        variations = [
+            "flowchart diagram with start/stop ovals",
+            "pseudocode structure",
+            "trace table",
+            "call stack hierarchy"
+        ]
+    else:
+        variations = ["cinematic shot", "action shot, dynamic", "close up"]
     
     for i in range(count):
         variation = variations[i % len(variations)]
@@ -131,18 +107,36 @@ def start_story(character_input, style_input, educational_mode, scene_count):
     app_logger.info(f"Starting new session: {session.session_id}")
     app_logger.info(f"Character: {character_input}, Style: {style_input}, Educational: {educational_mode}, Scenes: {scene_count}")
     
-    # Generate intro
-    # Generate intro
-    if educational_mode:
-        intro_prompt = f"Тема занятия: {character_input}. Стиль изложения: {style_input}. Введение:"
-        intro_text = storyteller.generate_response("Лекция началась.", intro_prompt, educational_mode=True)
-        session.history = f"Система: Занятие на тему '{character_input}'.\nЛектор: {intro_text}"
+    # Smart Detection: Is this a Story or a Topic?
+    is_narrative = len(character_input) > 50 and character_input.count(' ') > 5
+    
+    if is_narrative:
+        # Narrative Mode: Visualize the user's text directly!
+        intro_text = character_input
+        session.history = f"Система: Визуализация сюжета.\nСюжет: {character_input}"
+        # We don't ask the LLM to generate text, we just say "Here is your visualization"
+        chat_output = "Генерирую визуальный ряд по вашему сюжету..."
+        
+        # Determine strict mode for prompt engineering based on style
+        # If Comic Book, we want to enforce it even if Educational is checked
+        if style_input == "Comic Book":
+             # We might want to pass educational_mode=False to generate_sequence to avoid "simple background" logic
+             # But let's handle that in PromptEngineer mostly.
+             pass
     else:
-        intro_prompt = f"История начинается. Главный герой: {character_input}. Жанр: {style_input}. Начало:"
-        intro_text = storyteller.generate_response("Вступление:", intro_prompt, educational_mode=False)
-        session.history = f"Система: История о {character_input}.\nМастер: {intro_text}"
+        # Topic Mode: Generate educational intro
+        if educational_mode:
+            intro_prompt = f"Тема занятия: {character_input}. Стиль изложения: {style_input}. Введение:"
+            intro_text = storyteller.generate_response("Лекция началась.", intro_prompt, educational_mode=True)
+            session.history = f"Система: Занятие на тему '{character_input}'.\nЛектор: {intro_text}"
+        else:
+            intro_prompt = f"История начинается. Главный герой: {character_input}. Жанр: {style_input}. Начало:"
+            intro_text = storyteller.generate_response("Вступление:", intro_prompt, educational_mode=False)
+            session.history = f"Система: История о {character_input}.\nМастер: {intro_text}"
+        chat_output = intro_text
     
     # Generate Sequence
+    # IMPORTANT: If narrative, intro_text IS the narrative. If topic, intro_text IS the generated lecture.
     imgs = generate_sequence(intro_text, character_input, style_input, count=scene_count, educational_mode=educational_mode)
     session.images.extend(imgs)
     
@@ -153,12 +147,13 @@ def start_story(character_input, style_input, educational_mode, scene_count):
         session.char_desc, 
         session.style, 
         session.current_seed,
-        session.educational_mode
+        session.educational_mode,
+        images=session.images
     )
     
     # Return format: List of [User, Bot] dicts
     return [
-        {"role": "assistant", "content": intro_text}
+        {"role": "assistant", "content": chat_output}
     ], imgs
 
 def chat_turn(user_message, chat_history):
@@ -197,7 +192,8 @@ def chat_turn(user_message, chat_history):
         session.char_desc, 
         session.style, 
         session.current_seed,
-        session.educational_mode
+        session.educational_mode,
+        images=session.images
     )
     
     return chat_history, imgs
@@ -240,7 +236,7 @@ with gr.Blocks(title="Neuro Tale: Генератор образовательн�
             )
             low_memory_checkbox = gr.Checkbox(
                 label="Режим низкого потребления памяти (8GB RAM)", 
-                value=True,
+                value=False,
                 info="Включите если у вас 8GB оперативной памяти"
             )
             start_btn = gr.Button("🚀 Создать визуальную последовательность", variant="primary")
@@ -283,4 +279,4 @@ with gr.Blocks(title="Neuro Tale: Генератор образовательн�
     )
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(share=True)

@@ -107,12 +107,13 @@ class ImageGenerator:
 
         try:
             # Adjust steps and guidance for educational mode
+            # Adjust steps and guidance for educational mode
             if educational_mode:
-                actual_steps = 25 if self.device == "cuda" else 15
+                actual_steps = 35 if self.device == "cuda" else 25 # Increased steps
                 guidance_scale = 9.0
             else:
-                actual_steps = steps if self.device == "cuda" else 15
-                guidance_scale = 7.5
+                actual_steps = 40 if self.device == "cuda" else 25 # Increased steps for non-edu
+                guidance_scale = 8.0
             
             # autocast for mixed precision
             if self.device == 'cuda':
