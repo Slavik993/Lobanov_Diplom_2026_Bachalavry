@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPMN Диаграмма - Многоуровневая система</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 10px;
+            background-color: #f5f5f5;
+        }
+        
+        .diagram-container {
+            background: white;
+            border: 3px solid black;
+            padding: 15px;
+            margin: 20px 0;
+            position: relative;
+            overflow-x: auto;
+            min-width: 1600px;
+            min-height: 600px;
+        }
+        
+        .client-header {
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 15px;
+            background: white;
+            border: 2px solid black;
+            padding: 8px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .system-level {
+            position: relative;
+            border-bottom: 2px dashed #666;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            min-height: 120px;
+        }
+        
+        .system-level:last-child {
+            border-bottom: none;
+        }
+        
+        .level-label {
+            position: absolute;
+            left: -40px;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            font-weight: bold;
+            font-size: 12px;
+            background: white;
+            padding: 5px 10px;
+            border: 1px solid #666;
+            color: #333;
+        }
+        
+        .stage-section {
+            display: inline-block;
+            vertical-align: top;
+            border-right: 2px dashed #999;
+            padding: 10px 15px;
+            margin-right: 10px;
+            position: relative;
+            min-height: 100px;
+        }
+        
+        .stage-section:last-child {
+            border-right: none;
+        }
+        
+        .stage-label {
+            text-align: center;
+            font-weight: bold;
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 3px;
+        }
+        
+        .task {
+            border: 2px solid black;
+            border-radius: 8px;
+            padding: 6px 10px;
+            margin: 5px;
+            background: white;
+            font-size: 9px;
+            text-align: center;
+            min-width: 80px;
+            min-height: 35px;
+            display: inline-block;
+            vertical-align: top;
+        }
+        
+        .start-event, .end-event {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 8px;
+            text-align: center;
+            line-height: 30px;
+            font-size: 12px;
+            position: relative;
+        }
+        
+        .start-event {
+            border: 2px solid black;
+            background: white;
+        }
+        
+        .end-event {
+            border: 4px solid black;
+            background: white;
+        }
+        
+        .gateway {
+            width: 35px;
+            height: 35px;
+            transform: rotate(45deg);
+            border: 2px solid black;
+            background: white;
+            display: inline-block;
+            margin: 8px;
+            position: relative;
+        }
+        
+        .gateway-and::after {
+            content: "+";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .gateway-xor::after {
+            content: "×";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .data-object {
+            border: 2px solid black;
+            padding: 3px 5px;
+            font-size: 7px;
+            background: white;
+            margin: 2px;
+            position: relative;
+            max-width: 70px;
+            text-align: center;
+            display: block;
+        }
+        
+        .data-object::before {
+            content: "";
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 6px;
+            height: 6px;
+            border-left: 2px solid black;
+            border-bottom: 2px solid black;
+            background: white;
+        }
+        
+        .element-label {
+            font-size: 8px;
+            text-align: center;
+            margin-top: 3px;
+            line-height: 1.1;
+        }
+        
+        .timer-event {
+            width: 20px;
+            height: 20px;
+            border: 1px solid black;
+            border-radius: 50%;
+            background: white;
+            display: inline-block;
+            font-size: 8px;
+            text-align: center;
+            line-height: 20px;
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+        }
+        
+        .loop-marker {
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+        }
+        
+        .connecting-arrow {
+            display: inline-block;
+            width: 25px;
+            height: 2px;
+            background: black;
+            margin: 0 5px;
+            position: relative;
+            top: 20px;
+        }
+        
+        .connecting-arrow::after {
+            content: "";
+            position: absolute;
+            right: -3px;
+            top: -2px;
+            width: 0;
+            height: 0;
+            border-left: 6px solid black;
+            border-top: 3px solid transparent;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .phase-divider {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -8px;
+            text-align: center;
+            font-size: 9px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .strategic-level { background: #f8f8f8; }
+        .operational-level { background: #f0f8ff; }
+        .support-level { background: #f0fff0; }
+        
+        .message-flow {
+            stroke: #666;
+            stroke-width: 1;
+            fill: none;
+            stroke-dasharray: 3,3;
+            marker-end: url(#dashedArrow);
+        }
+    </style>
+</head>
+<body>
+    <div class="diagram-container">
+        <div class="client-header">Клиент</div>
+        
+        <svg style="position: absolute; width: 0; height: 0;">
+            <defs>
+                <marker id="dashedArrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                    <polygon points="0 0, 8 3, 0 6" fill="#666"/>
+                </marker>
+            </defs>
+        </svg>
+        
+        <!-- СТРАТЕГИЧЕСКИЙ УРОВЕНЬ -->
+        <div class="system-level strategic-level">
+            <div class="level-label">Стратегический уровень</div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Инициация</div>
+                <div style="text-align: center;">
+                    <div class="start-event">💡</div>
+                    <div class="element-label">Запуск бизнеса<br>($2.6 млрд)</div>
+                </div>
+            </div>
+            
+            <div class="connecting-arrow"></div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Планирование</div>
+                <div style="text-align: center;">
+                    <div class="task">BP1:<br>Стратегическое<br>планирование</div>
+                    <div class="data-object">SWOT-анализ</div>
+                </div>
+            </div>
+            
+            <div class="connecting-arrow"></div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Разветвление</div>
+                <div style="text-align: center;">
+                    <div class="gateway gateway-and"></div>
+                    <div class="element-label">AND<br>параллельные<br>процессы</div>
+                </div>
+            </div>
+            
+            <div class="connecting-arrow"></div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Моделирование</div>
+                <div style="text-align: center;">
+                    <div class="task">BP2:<br>Бизнес-модель</div>
+                    <div class="data-object">Canvas</div>
+                </div>
+            </div>
+            
+            <div class="phase-divider">Фаза 1: Стратегическое планирование (1-2 месяца)</div>
+        </div>
+        
+        <!-- ОПЕРАЦИОННЫЙ УРОВЕНЬ -->
+        <div class="system-level operational-level">
+            <div class="level-label">Операционный уровень</div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Выбор направления</div>
+                <div style="text-align: center;">
+                    <div class="gateway gateway-xor"></div>
+                    <div class="element-label">XOR<br>выбор<br>монетизации</div>
+                </div>
+            </div>
+            
+            <div class="connecting-arrow"></div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Привлечение</div>
+                <div style="text-align: center;">
+                    <div class="task">BP3:<br>Маркетинг<br>и лиды</div>
+                    <div class="data-object">1000+ лидов</div>
+                    <div class="element-label">Sales/Маркетинг</div>
+                </div>
+            </div>
+            
+            <div class="connecting-arrow"></div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Конверсия</div>
+                <div style="text-align: center;">
+                    <div class="task">BP4:<br>Продажи</div>
+                    <div class="data-object">10-20%<br>конверсия</div>
+                </div>
+            </div>
+            
+            <div class="connecting-arrow"></div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Разработка</div>
+                <div style="text-align: center; position: relative;">
+                    <div class="task">BP5:<br>Разработка</div>
+                    <div class="data-object">Unity v1.1</div>
+                    <div class="loop-marker">🔄</div>
+                    <div class="element-label">Разработчик</div>
+                </div>
+            </div>
+            
+            <div class="connecting-arrow"></div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Защита ИС</div>
+                <div style="text-align: center; position: relative;">
+                    <div class="task">BP6:<br>Патентование</div>
+                    <div class="data-object">Патент F4</div>
+                    <div class="timer-event">⏰</div>
+                    <div class="element-label">Юрист<br>(6-12 мес)</div>
+                </div>
+            </div>
+            
+            <div class="phase-divider">Фаза 2: Операционная деятельность (6-12 месяцев)</div>
+        </div>
+        
+        <!-- ПОДДЕРЖИВАЮЩИЙ УРОВЕНЬ -->
+        <div class="system-level support-level">
+            <div class="level-label">Поддерживающий уровень</div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Поддержка</div>
+                <div style="text-align: center;">
+                    <div class="task">BP7:<br>Техподдержка</div>
+                    <div class="data-object">90% решено</div>
+                    <div class="element-label">Support</div>
+                </div>
+            </div>
+            
+            <div class="connecting-arrow"></div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Анализ</div>
+                <div style="text-align: center;">
+                    <div class="task">BP8:<br>Аналитика</div>
+                    <div class="data-object">ROI +30 bps</div>
+                    <div class="element-label">Аналитик</div>
+                </div>
+            </div>
+            
+            <div class="connecting-arrow"></div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Принятие решений</div>
+                <div style="text-align: center;">
+                    <div class="gateway gateway-xor"></div>
+                    <div class="element-label">XOR<br>корректировка<br>или рост</div>
+                </div>
+            </div>
+            
+            <div class="connecting-arrow"></div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Масштабирование</div>
+                <div style="text-align: center;">
+                    <div class="task">BP9:<br>Партнёрства</div>
+                    <div class="data-object">30% комиссия</div>
+                    <div class="element-label">Менеджер</div>
+                </div>
+            </div>
+            
+            <div class="connecting-arrow"></div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Управление</div>
+                <div style="text-align: center;">
+                    <div class="task">BP10:<br>Администр.</div>
+                    <div class="data-object">Фин. отчёты</div>
+                </div>
+            </div>
+            
+            <div class="connecting-arrow"></div>
+            
+            <div class="stage-section">
+                <div class="stage-label">Результат</div>
+                <div style="text-align: center;">
+                    <div class="end-event">💰</div>
+                    <div class="element-label">Устойчивый<br>доход<br>1-10 млн ₽</div>
+                </div>
+            </div>
+            
+            <div class="phase-divider">Фаза 3: Поддержка и развитие (постоянно)</div>
+        </div>
+        
+        <!-- Межуровневые связи -->
+        <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;">
+            <!-- Вертикальные связи между уровнями -->
+            <line x1="300" y1="180" x2="300" y2="220" class="message-flow"/>
+            <line x1="600" y1="180" x2="400" y2="220" class="message-flow"/>
+            <line x1="800" y1="360" x2="200" y2="400" class="message-flow"/>
+            <line x1="1000" y1="360" x2="400" y2="400" class="message-flow"/>
+            
+            <!-- Обратная связь -->
+            <path d="M 900 320 Q 920 280 700 280 Q 680 300 700 320" class="message-flow"/>
+            
+            <!-- Связь от принятия решений обратно к разработке -->
+            <path d="M 600 480 Q 550 450 500 380 Q 450 350 600 350" class="message-flow"/>
+        </svg>
+    </div>
+    
+    <div style="text-align: center; font-weight: bold; margin: 20px 0;">
+        Рисунок X.X - Нотация BPMN (Многоуровневая система)
+    </div>
+    
+    <div style="margin-top: 15px; font-size: 11px; line-height: 1.4;">
+        <strong>Структура системы:</strong><br>
+        🏢 <strong>3 уровня:</strong> Стратегический → Операционный → Поддерживающий<br>
+        📊 <strong>7 этапов:</strong> Инициация → Планирование → Привлечение → Разработка → Анализ → Масштабирование → Результат<br>
+        ⏱ <strong>3 фазы:</strong> Планирование (1-2 мес) → Операции (6-12 мес) → Поддержка (постоянно)
+    </div>
+</body>
+</html>
